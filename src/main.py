@@ -8,32 +8,76 @@ class App:
     def __init__(self, window, window_title):
         self.window = window
         self.window.title(window_title)
+        self.window.configure(bg="#E9F5F2")
 
-        # Initialize the gesture module
+        # App title
+        self.title_label = tk.Label(
+            window, 
+            text="🤟 Sign Language Detector", 
+            font=("Segoe UI", 22, "bold"),
+            fg="#1B4D3E", 
+            bg="#E9F5F2"
+        )
+        self.title_label.pack(pady=10)
+
+        # Initialize gesture module
         self.gesture_module = GestureModule()
 
-        # Open the video source
+        # Video feed
         self.vid = cv2.VideoCapture(0)
+        w = int(self.vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # Create a canvas that can fit the above video source size
-        self.canvas = tk.Canvas(window, width=self.vid.get(cv2.CAP_PROP_FRAME_WIDTH), height=self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Rounded video frame background
+        self.video_frame = tk.Frame(window, bg="#D7F0E5", bd=2, relief="ridge")
+        self.video_frame.pack(pady=10)
+
+        self.canvas = tk.Canvas(self.video_frame, width=w, height=h, bg="#D7F0E5", highlightthickness=0)
         self.canvas.pack()
 
-        # Create a frame for the buttons
-        self.btn_frame = tk.Frame(window, bg="white")
-        self.btn_frame.pack(fill="both", expand="yes")
+        # Language selection frame
+        self.lang_frame = tk.Frame(window, bg="#E9F5F2")
+        self.lang_frame.pack(pady=15)
 
-        # Add a label for the current language
-        self.lang_label = tk.Label(self.btn_frame, text="Language: English")
-        self.lang_label.pack(side="left", padx=10)
+        self.lang_label = tk.Label(
+            self.lang_frame, 
+            text="Currently Selected: English 🇬🇧",
+            font=("Segoe UI", 12, "bold"),
+            fg="#1B4D3E", 
+            bg="#E9F5F2"
+        )
+        self.lang_label.pack(pady=5)
 
-        # Add buttons to switch the language
-        self.btn_english = ttk.Button(self.btn_frame, text="English", command=lambda: self.set_language("en"))
+        # Modern buttons using ttk style
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure(
+            "TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=6,
+            relief="flat",
+            background="#4BBF9A",
+            foreground="white"
+        )
+        style.map("TButton", background=[("active", "#39A386")])
+
+        self.btn_english = ttk.Button(self.lang_frame, text="English 🇬🇧", command=lambda: self.set_language("en"))
         self.btn_english.pack(side="left", padx=10)
-        self.btn_hindi = ttk.Button(self.btn_frame, text="Hindi", command=lambda: self.set_language("hi"))
+
+        self.btn_hindi = ttk.Button(self.lang_frame, text="Hindi 🇮🇳", command=lambda: self.set_language("hi"))
         self.btn_hindi.pack(side="left", padx=10)
 
-        # After it is called once, the update method will be automatically called every 15 ms
+        # Footer label
+        self.footer = tk.Label(
+            window,
+            text="Developed by Mini 🌸",
+            font=("Segoe UI", 10, "italic"),
+            fg="#4BBF9A",
+            bg="#E9F5F2"
+        )
+        self.footer.pack(pady=5)
+
+        # Video update loop
         self.delay = 15
         self.update()
 
@@ -41,21 +85,19 @@ class App:
 
     def set_language(self, lang):
         self.gesture_module.set_language(lang)
-        self.lang_label.config(text=f"Language: {'English' if lang == 'en' else 'Hindi'}")
+        if lang == "en":
+            self.lang_label.config(text="Currently Selected: English 🇬🇧")
+        else:
+            self.lang_label.config(text="Currently Selected: Hindi 🇮🇳")
 
     def update(self):
-        # Get a frame from the video source
         ret, frame = self.vid.read()
-
         if ret:
-            # Process the frame with the gesture module
-            frame = self.gesture_module.process_frame(frame)
-
-            # Convert the frame to a format that tkinter can use
-            self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
+            frame, _ = self.gesture_module.process_frame(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.photo = ImageTk.PhotoImage(image=Image.fromarray(frame))
             self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-
         self.window.after(self.delay, self.update)
 
-# Create a window and pass it to the App object
+# Run the app
 App(tk.Tk(), "Sign Language Detector")
